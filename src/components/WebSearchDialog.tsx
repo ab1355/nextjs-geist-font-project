@@ -94,7 +94,7 @@ export default function WebSearchDialog({ open, onOpenChange }: WebSearchDialogP
 
           {!loading && results.length === 0 && query && (
             <div className="text-center text-gray-400 py-8">
-              No results found for "{query}"
+              No results found for &quot;{query}&quot;
             </div>
           )}
 

@@ -160,7 +160,7 @@ export default function LearningPanel({
 
             {!loading && insights.length === 0 && topic && (
               <div className="text-center text-gray-400 py-8">
-                No insights found for "{topic}"
+                No insights found for &quot;{topic}&quot;
               </div>
             )}
 

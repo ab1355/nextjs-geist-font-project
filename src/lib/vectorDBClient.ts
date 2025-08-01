@@ -31,7 +31,7 @@ export async function storeKnowledge(content: string): Promise<KnowledgeEntry> {
     const entry: KnowledgeEntry = {
       id: row.id,
       content: row.content,
-      embedding: JSON.parse(row.embedding),
+      embedding: row.embedding,
       metadata: {
         source: row.source,
         timestamp: row.timestamp,
@@ -56,7 +56,7 @@ export async function fetchKnowledge(query: string): Promise<KnowledgeEntry[]> {
     return result.rows.map(row => ({
       id: row.id,
       content: row.content,
-      embedding: JSON.parse(row.embedding),
+      embedding: row.embedding,
       metadata: {
         source: row.source,
         timestamp: row.timestamp,
