@@ -26,6 +26,14 @@ interface LLMSettingsDialogProps {
   onClose: () => void;
 }
 
+const commercialProviders = {
+  openai: "https://api.openai.com/v1/completions",
+  openrouter: "https://openrouter.ai/api/v1/chat/completions",
+  requesty: "https://api.requesty.ai/v1/models/completions",
+  litellm: "https://api.litellm.ai/v1/completions",
+  aiml: "https://api.aimlapi.com/v1/chat/completions",
+};
+
 export default function LLMSettingsDialog({
   open,
   initialConfig,
@@ -55,6 +63,10 @@ export default function LLMSettingsDialog({
       setTestStatus("error");
       setErrorMessage(error.message);
     }
+  };
+
+  const handleProviderChange = (provider: keyof typeof commercialProviders) => {
+    setConfig({ ...config, commercialEndpoint: commercialProviders[provider] });
   };
 
   return (
@@ -103,6 +115,21 @@ export default function LLMSettingsDialog({
           {config.mode === "commercial" && (
             <>
               <div className="grid gap-2">
+                <Label htmlFor="commercial-provider">Commercial Provider</Label>
+                <Select onValueChange={handleProviderChange}>
+                  <SelectTrigger id="commercial-provider">
+                    <SelectValue placeholder="Select provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(commercialProviders).map(([key, value]) => (
+                      <SelectItem key={key} value={key}>
+                        {key.charAt(0).toUpperCase() + key.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="commercial-endpoint">Commercial Endpoint URL</Label>
                 <Input
                   id="commercial-endpoint"
@@ -110,7 +137,7 @@ export default function LLMSettingsDialog({
                   onChange={(e) =>
                     setConfig({ ...config, commercialEndpoint: e.target.value })
                   }
-                  placeholder="https://api.openai.com/v1/completions"
+                  placeholder="Select a provider or enter a custom URL"
                 />
               </div>
               <div className="grid gap-2">
