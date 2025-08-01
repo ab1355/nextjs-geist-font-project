@@ -7,15 +7,33 @@ import DecisionAnalysisDialog from "./DecisionAnalysisDialog";
 import WebSearchDialog from "./WebSearchDialog";
 import LearningPanel from "./LearningPanel";
 import LLMSettingsDialog from "./LLMSettingsDialog";
-import { 
-  processAgentTask, 
-  makeAutonomousDecision, 
-  makeCollaborativeDecision, 
-  AutonomousDecision, 
-  CollaborativeDecision 
-} from "../lib/agentLogic";
 import { LLMConfig, defaultLLMConfig } from "../models/LLMConfig";
-import { queryLLM } from "../lib/llmClient";
+
+// Define types locally as they are no longer imported from server-side code
+export interface AutonomousDecision {
+  decision_parameter: string;
+  decision_threshold: string;
+  decision_outcome: "approved" | "denied";
+  risk_assessment: {
+    risk_type: string;
+    risk_level: "low" | "medium" | "high";
+    risk_mitigation_plan?: string;
+  };
+  impact_analysis: {
+    impact_area: string;
+    impact_level: "minor" | "moderate" | "significant";
+    analysis_report?: string;
+  };
+}
+
+export interface CollaborativeDecision extends AutonomousDecision {
+  consensus_type: "voting" | "discussion";
+  participants: string[];
+  consensus_outcome: "agreement_reached" | "no_agreement";
+  oversight_type: "review" | "approval";
+  oversight_feedback: "approved" | "needs_revision";
+  oversight_duration: "quick" | "detailed";
+}
 
 interface Agent {
   name: string;
@@ -201,13 +219,11 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
     participants?: string[];
     oversight_type?: "review" | "approval";
   }) => {
-    // Check if CEO is available
     if (ceoAgent.status !== "Idle") {
       alert("CEO is busy delegating another task. Please wait.");
       return;
     }
 
-    // Find the target subordinate agent
     const targetIndex = subAgents.findIndex((agent) => agent.name === task.agent);
     if (targetIndex === -1) {
       console.error(`Subordinate agent ${task.agent} not found.`);
@@ -219,122 +235,47 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
       return;
     }
 
+    const targetAgent = subAgents.find(agent => agent.name === task.agent);
+    const llmConfig = targetAgent?.llmConfig || defaultLLMConfig;
+
+    setCeoAgent((prev) => ({ ...prev, status: "Evaluating Task" }));
+    setSubAgents((prev) =>
+        prev.map((agent, index) =>
+          index === targetIndex
+            ? { ...agent, status: `Working on ${task.title}`, currentTask: task.description }
+            : agent
+        )
+      );
+
+
     try {
-      // Get agent's LLM config
-      const targetAgent = subAgents.find(agent => agent.name === task.agent);
-      const llmConfig = targetAgent?.llmConfig || defaultLLMConfig;
+      const response = await fetch('/api/agent/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delegateTask',
+          payload: { ...task, llmConfig },
+        }),
+      });
 
-      // Process task with LLM if configured
-      if (llmConfig) {
-        try {
-          const llmResponse = await queryLLM(
-            `Task: ${task.title}\nDescription: ${task.description}`,
-            llmConfig
-          );
-          // Use LLM response to enhance task processing
-          task.description = `${task.description}\nLLM Analysis: ${llmResponse.text}`;
-        } catch (error) {
-          console.error("LLM processing error:", error);
-          // Continue with task even if LLM fails
-        }
+      if (!response.ok) {
+        throw new Error('Failed to delegate task');
       }
 
-      // Update CEO status to indicate evaluation is in progress
-      setCeoAgent((prev) => ({ ...prev, status: "Evaluating Task" }));
+      const result = await response.json();
 
-      let decision: AutonomousDecision | CollaborativeDecision;
-      if (task.collaborative) {
-        // Make collaborative decision
-        decision = await makeCollaborativeDecision(
-          { title: task.title, description: task.description },
-          task.decisionData,
-          {
-            consensus_type: task.consensus_type || "voting",
-            participants: task.participants || [],
-          },
-          {
-            oversight_type: task.oversight_type || "review",
-          }
-        );
-
-        // Update CEO status based on collaborative decision
-        setCeoAgent((prev) => ({
-          ...prev,
-          status: decision.decision_outcome === "approved" && 
-                 (decision as CollaborativeDecision).consensus_outcome === "agreement_reached" && 
-                 (decision as CollaborativeDecision).oversight_feedback === "approved"
-            ? `Delegating to ${task.agent}`
-            : "Idle",
-        }));
-
-        // If consensus was not reached or oversight not approved, notify and return
-        if ((decision as CollaborativeDecision).consensus_outcome !== "agreement_reached" || 
-            (decision as CollaborativeDecision).oversight_feedback !== "approved") {
-          onAgentMessage(
-            `Task "${task.title}" was not approved.\nConsensus: ${(decision as CollaborativeDecision).consensus_outcome}\nOversight: ${(decision as CollaborativeDecision).oversight_feedback}`
-          );
-          return;
-        }
-      } else {
-        // Make autonomous decision
-        decision = await makeAutonomousDecision(
-          { title: task.title, description: task.description },
-          task.decisionData
-        );
-
-        // Update CEO status based on autonomous decision
-        setCeoAgent((prev) => ({
-          ...prev,
-          status: decision.decision_outcome === "approved" ? `Delegating to ${task.agent}` : "Idle",
-        }));
-
-        // If decision is denied, notify and return
-        if (decision.decision_outcome === "denied") {
-          onAgentMessage(
-            `Task "${task.title}" was denied by the autonomous decision system.\nRisk Level: ${decision.risk_assessment.risk_level}\nImpact Level: ${decision.impact_analysis.impact_level}`
-          );
-          return;
-        }
-      }
-
-      // Update subordinate agent status to "Working on ..."
       setSubAgents((prev) =>
         prev.map((agent, index) =>
           index === targetIndex
-            ? {
-                ...agent,
-                status: `Working on ${task.title}`,
-                currentTask: task.description,
-                lastDecision: decision,
-              }
+            ? { ...agent, status: result.success ? "Idle" : "Error", currentTask: undefined, lastDecision: result.decision }
             : agent
         )
       );
 
-      // Process the task
-      const result = await processAgentTask(task.agent, {
-        title: task.title,
-        description: task.description,
-      }, decision);
-
-      // Update subordinate agent status based on processing result
-      setSubAgents((prev) =>
-        prev.map((agent, index) =>
-          index === targetIndex
-            ? {
-                ...agent,
-                status: result.success ? "Idle" : "Error",
-                currentTask: undefined,
-              }
-            : agent
-        )
-      );
-
-      // Reset CEO status to idle
       setCeoAgent((prev) => ({ ...prev, status: "Idle" }));
 
-      // Post the message
       onAgentMessage(result.message);
+
     } catch (error) {
       console.error("Error processing task:", error);
       setSubAgents((prev) =>

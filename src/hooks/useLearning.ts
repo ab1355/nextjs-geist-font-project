@@ -1,6 +1,13 @@
 import { useState, useCallback } from 'react';
-import { getLearningInsights, getBehaviorProfile, getExperienceStats } from '../lib/learningEngine';
-import type { BehaviorProfile } from '../lib/learningEngine';
+
+// Types are now defined here as they are not imported from server-side code
+export interface BehaviorProfile {
+    agentName: string;
+    successRate: number;
+    riskTolerance: number;
+    collaborationScore: number;
+    lastUpdated: number;
+}
 
 interface ExperienceStats {
   totalTasks: number;
@@ -26,8 +33,15 @@ export default function useLearning(agentName?: string) {
     setLoading(true);
     setError(null);
     try {
-      const behaviorProfile = getBehaviorProfile(name);
-      const experienceStats = getExperienceStats(name);
+      const profileResponse = await fetch(`/api/learning?action=profile&agentName=${name}`);
+      const statsResponse = await fetch(`/api/learning?action=stats&agentName=${name}`);
+
+      if (!profileResponse.ok || !statsResponse.ok) {
+          throw new Error('Failed to fetch agent data');
+      }
+
+      const behaviorProfile = await profileResponse.json();
+      const experienceStats = await statsResponse.json();
       
       setProfile(behaviorProfile);
       setStats(experienceStats);
@@ -45,7 +59,11 @@ export default function useLearning(agentName?: string) {
     setLoading(true);
     setError(null);
     try {
-      const data = await getLearningInsights(topic);
+      const response = await fetch(`/api/learning?action=insights&topic=${encodeURIComponent(topic)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch learning insights');
+      }
+      const data = await response.json();
       setInsights(data);
     } catch (error) {
       console.error("Error fetching insights:", error);
@@ -60,7 +78,6 @@ export default function useLearning(agentName?: string) {
     setError(null);
   }, []);
 
-  // Fetch agent data when agentName changes
   const refreshAgentData = useCallback(() => {
     if (agentName) {
       fetchAgentData(agentName);
