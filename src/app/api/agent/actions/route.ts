@@ -65,7 +65,7 @@ export async function POST(request: Request) {
                 decision: decision
             }
         } else {
-            const processResult = await processAgentTask(agent, task, decision);
+            const processResult = await processAgentTask(agent.name, task, decision);
             result = { ...processResult, decision };
         }
         break;

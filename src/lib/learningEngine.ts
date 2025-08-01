@@ -11,16 +11,28 @@ export interface LearningExperience {
 }
 
 export interface BehaviorProfile {
-  agentName: string;
+  agentName:string;
   successRate: number;
   riskTolerance: number;
   collaborationScore: number;
   lastUpdated: number;
 }
 
-// In-memory storage for experiences and behavior profiles
-const experiences: LearningExperience[] = [];
-const behaviorProfiles: Map<string, BehaviorProfile> = new Map();
+declare global {
+  var experiences: LearningExperience[];
+  var behaviorProfiles: Map<string, BehaviorProfile>;
+}
+
+if (!global.experiences) {
+  global.experiences = [];
+}
+if (!global.behaviorProfiles) {
+  global.behaviorProfiles = new Map<string, BehaviorProfile>();
+}
+
+const experiences: LearningExperience[] = global.experiences;
+const behaviorProfiles: Map<string, BehaviorProfile> = global.behaviorProfiles;
+
 
 export async function storeExperience(
   agentName: string,
@@ -58,6 +70,7 @@ export async function updateBehaviorProfile(
   experience: LearningExperience
 ): Promise<void> {
   try {
+    console.log(`Updating profile for: ${agentName}`);
     const currentProfile = behaviorProfiles.get(agentName) || {
       agentName,
       successRate: 0,
@@ -65,6 +78,7 @@ export async function updateBehaviorProfile(
       collaborationScore: 0.5,
       lastUpdated: 0,
     };
+    console.log('Profile before update:', currentProfile);
 
     // Get recent experiences for this agent
     const agentExperiences = experiences.filter(exp => exp.agentName === agentName);
@@ -91,6 +105,8 @@ export async function updateBehaviorProfile(
 
     currentProfile.lastUpdated = Date.now();
     behaviorProfiles.set(agentName, currentProfile);
+    console.log('Profile after update:', currentProfile);
+    console.log('Behavior profiles map size:', behaviorProfiles.size);
   } catch (error) {
     console.error("Error updating behavior profile:", error);
   }
