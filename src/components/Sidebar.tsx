@@ -1,15 +1,40 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Users, FileText, Calendar, Server, Briefcase } from "lucide-react";
-import { agents, mcpServers } from "../components";
+import { agents } from "../components";
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
 
+interface McpServer {
+  name: string;
+  status: string;
+}
+
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+  const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
+
+  useEffect(() => {
+    const fetchMcpServers = async () => {
+      try {
+        const response = await fetch('/api/mcp');
+        if (response.ok) {
+          const data = await response.json();
+          setMcpServers(data);
+        } else {
+          console.error('Failed to fetch MCP servers');
+        }
+      } catch (error) {
+        console.error('Error fetching MCP servers:', error);
+      }
+    };
+
+    fetchMcpServers();
+  }, []);
+
   const tabs = [
     { name: "home", icon: Home },
     { name: "agents", icon: Users },

@@ -168,13 +168,14 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
 
   const handleDelegateTask = async (task: {
     agent: string;
-    title: string;
+    title:string;
     description: string;
     decisionData: any;
     collaborative?: boolean;
     consensus_type?: "voting" | "discussion";
     participants?: string[];
     oversight_type?: "review" | "approval";
+    tool?: Tool;
   }) => {
     if (ceoAgent.status !== "Idle") {
       alert("CEO is busy delegating another task. Please wait.");
@@ -195,6 +196,14 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
     const targetAgent = subAgents.find(agent => agent.name === task.agent);
     const llmConfig = targetAgent?.llmConfig || defaultLLMConfig;
 
+    let toolContext;
+    if (task.tool) {
+      toolContext = {
+        tool: task.tool,
+        input: {}, // Assuming no specific input for now
+      };
+    }
+
     setCeoAgent((prev) => ({ ...prev, status: "Evaluating Task" }));
     setSubAgents((prev) =>
         prev.map((agent, index) =>
@@ -211,7 +220,7 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'delegateTask',
-          payload: { ...task, llmConfig },
+          payload: { ...task, llmConfig, toolContext },
         }),
       });
 
@@ -416,9 +425,10 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
       </div>
 
       {/* Dialogs */}
-      <TaskDelegationDialog 
-        agents={subAgents} 
-        onDelegateTask={handleDelegateTask} 
+      <TaskDelegationDialog
+        agents={subAgents}
+        tools={toolState.tools}
+        onDelegateTask={handleDelegateTask}
       />
       
       <DecisionAnalysisDialog

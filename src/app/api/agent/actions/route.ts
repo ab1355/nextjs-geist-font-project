@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import {
-  processAgentTask,
+  processAgentTaskWithPocketFlow as processAgentTask,
   makeAutonomousDecision,
   makeCollaborativeDecision,
   AutonomousDecision,
   CollaborativeDecision,
   AgentTask,
   DecisionData
-} from "@/lib/agentLogic";
+} from "@/lib/agentLogic.pocketflow";
 import { queryLLM } from '@/lib/llmClient';
 import { LLMConfig } from '@/models/LLMConfig';
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     switch (action) {
       case 'delegateTask':
-        const { task, agent, llmConfig, decisionData, collaborative, consensus_type, participants, oversight_type } = payload;
+        const { task, agent, llmConfig, decisionData, collaborative, consensus_type, participants, oversight_type, toolContext } = payload;
 
         if (llmConfig) {
             try {
@@ -58,16 +58,8 @@ export async function POST(request: Request) {
             );
         }
 
-        if (decision.decision_outcome === "denied" || ('consensus_outcome' in decision && decision.consensus_outcome === "no_agreement")) {
-            result = {
-                success: false,
-                message: `Task "${task.title}" was not approved.`,
-                decision: decision
-            }
-        } else {
-            const processResult = await processAgentTask(agent.name, task, decision);
-            result = { ...processResult, decision };
-        }
+        const processResult = await processAgentTask(agent.name, task, decisionData, toolContext);
+        result = { ...processResult, decision };
         break;
 
       default:
