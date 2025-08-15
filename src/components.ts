@@ -41,8 +41,3 @@ export const agents = [
   },
 ];
 
-export const mcpServers = [
-  { name: "MCP Server 1", status: "Online" },
-  { name: "MCP Server 2", status: "Offline" },
-  { name: "MCP Server 3", status: "Online" },
-];

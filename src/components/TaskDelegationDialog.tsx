@@ -16,8 +16,11 @@ import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Switch } from "./ui/switch";
 
+import { Tool } from "../lib/agentTools";
+
 interface TaskDelegationDialogProps {
   agents: Array<{ name: string; status: string }>;
+  tools: Tool[];
   onDelegateTask: (task: {
     agent: string;
     title: string;
@@ -27,11 +30,13 @@ interface TaskDelegationDialogProps {
     consensus_type?: "voting" | "discussion";
     participants?: string[];
     oversight_type?: "review" | "approval";
+    tool?: Tool;
   }) => void;
 }
 
 export default function TaskDelegationDialog({
   agents,
+  tools,
   onDelegateTask,
 }: TaskDelegationDialogProps) {
   const [open, setOpen] = useState(false);
@@ -47,6 +52,7 @@ export default function TaskDelegationDialog({
     impactArea: "",
     impactLevel: "moderate",
     impactAnalysis: "",
+    toolName: "",
     // New collaborative decision fields
     collaborative: false,
     consensus_type: "voting",
@@ -57,6 +63,7 @@ export default function TaskDelegationDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const selectedTool = tools.find(t => t.name === formData.toolName);
     const task = {
       agent: formData.agent,
       title: formData.title,
@@ -79,6 +86,7 @@ export default function TaskDelegationDialog({
       consensus_type: formData.consensus_type as "voting" | "discussion",
       participants: formData.participants,
       oversight_type: formData.oversight_type as "review" | "approval",
+      tool: selectedTool,
     };
 
     onDelegateTask(task);
@@ -96,6 +104,7 @@ export default function TaskDelegationDialog({
       impactArea: "",
       impactLevel: "moderate",
       impactAnalysis: "",
+      toolName: "",
       collaborative: false,
       consensus_type: "voting",
       participants: [],
@@ -145,6 +154,28 @@ export default function TaskDelegationDialog({
                   {agents.map((agent) => (
                     <SelectItem key={agent.name} value={agent.name}>
                       {agent.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="tool">Tool (Optional)</Label>
+              <Select
+                value={formData.toolName}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, toolName: value }))
+                }
+              >
+                <SelectTrigger className="bg-gray-700">
+                  <SelectValue placeholder="Select a tool" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-700">
+                  <SelectItem value="">None</SelectItem>
+                  {tools.map((tool) => (
+                    <SelectItem key={tool.name} value={tool.name}>
+                      {tool.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
