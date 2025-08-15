@@ -77,50 +77,7 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
   });
 
   // Subordinate agents state with LLM config
-  const [subAgents, setSubAgents] = useState<Agent[]>([
-    {
-      name: "Marketing",
-      status: "Idle",
-      avatar: "https://images.pexels.com/photos/3184287/pexels-photo-3184287.jpeg?auto=compress&cs=tinysrgb&w=60",
-      llmConfig: defaultLLMConfig
-    },
-    {
-      name: "Technology",
-      status: "Idle",
-      avatar: "https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=60",
-      llmConfig: defaultLLMConfig
-    },
-    {
-      name: "Learning",
-      status: "Idle",
-      avatar: "https://images.pexels.com/photos/356079/pexels-photo-356079.jpeg?auto=compress&cs=tinysrgb&w=60",
-      llmConfig: defaultLLMConfig
-    },
-    {
-      name: "Developer",
-      status: "Idle",
-      avatar: "https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=60",
-      llmConfig: defaultLLMConfig
-    },
-    {
-      name: "Customer Support",
-      status: "Idle",
-      avatar: "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=60",
-      llmConfig: defaultLLMConfig
-    },
-    {
-      name: "Graphic Designer",
-      status: "Idle",
-      avatar: "https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=60",
-      llmConfig: defaultLLMConfig
-    },
-    {
-      name: "Writer",
-      status: "Idle",
-      avatar: "https://images.pexels.com/photos/261187/pexels-photo-261187.jpeg?auto=compress&cs=tinysrgb&w=60",
-      llmConfig: defaultLLMConfig
-    },
-  ]);
+  const [subAgents, setSubAgents] = useState<Agent[]>([]);
 
   // Dialog states
   const [showDecisionDialog, setShowDecisionDialog] = useState(false);
