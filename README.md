@@ -103,8 +103,16 @@ Input Validation and sanitization
 Database Connection Pooling
 Graceful Failure Handling
 Recent Improvements
-Refactored Agent Logic
-Improved the clarity and maintainability of the core agent logic by breaking down the `processAgentTask` function into smaller, more specialized functions. This enhances the separation of concerns and makes the code easier to understand and extend.
+PocketFlow Integration
+The core agent logic has been refactored to use PocketFlow, a lightweight and expressive framework for building LLM applications. This change significantly improves the modularity, maintainability, and scalability of the agent logic. The new implementation is based on PocketFlow's `Node`, `Flow`, and `Shared Store` concepts.
+
+Functional MCP Servers and Tools
+The MCP (ModuMind Control Plane) servers are now functional. Their status is fetched from a new API endpoint, providing real-time information.
+The agent tools are now fully integrated with the agent logic. Users can select a tool when delegating a task, and the tool is executed as part of the task processing flow.
+
+File Uploads
+The chat interface now supports file uploads. Users can upload files of various types (pdf, txt, md, code files), and the file content is made available to the agent as part of the task context.
+
 Enhanced Learning System
 Adaptive behavior profiles that adjust based on agent performance
 Vector database integration for long-term knowledge retention
@@ -126,14 +134,8 @@ PostgreSQL with JSONB support for flexible data storage
 Efficient embedding storage for vector operations
 Automated migration system
 
-Refactoring `agentLogic.ts`
-The `agentLogic.ts` file, which is central to the agent's task processing and decision-making, has been significantly refactored to improve its structure and readability. The primary goal of this refactoring was to break down the monolithic `processAgentTask` function into smaller, more focused helper functions. This change not only simplifies the main function but also enhances the overall maintainability and scalability of the agent logic.
-
-The following helper functions have been introduced:
-`handleDecisionFailure`: This function is responsible for handling scenarios where a task is denied due to a failed decision, either autonomous or collaborative. It logs the failure experience and formats the response.
-`processTaskWithTool`: This function manages tasks that require the use of a tool. It handles the execution of the tool and stores the outcome in the learning engine.
-`processTaskWithoutTool`: This function processes tasks that do not involve any tools. It includes the logic for simulating task success or failure and records the experience accordingly.
-By delegating specific responsibilities to these helper functions, the main `processAgentTask` function is now cleaner and acts as a dispatcher, directing tasks to the appropriate handler based on the context. This refactoring improves the separation of concerns, making the codebase more modular and easier to debug and extend in the future.
+Refactoring `agentLogic.ts` with PocketFlow
+The `agentLogic.ts` file has been refactored to use PocketFlow. The original `processAgentTask` function has been replaced by a PocketFlow `Flow` that orchestrates a series of `Nodes`. Each node represents a specific step in the task processing logic, such as making a decision, executing a tool, or handling a failure. This new architecture makes the agent logic more explicit, easier to debug, and more flexible to extend.
 This system represents a comprehensive AI agent platform that combines hierarchical task management, adaptive learning, flexible LLM integration, and robust decision-making capabilities in a modern, scalable architecture.
 
 

@@ -2,10 +2,13 @@
 
 import React from "react";
 
+import { Paperclip } from "lucide-react";
+
 interface Message {
   id: number;
   sender: "agent" | "human";
   text: string;
+  file?: File;
 }
 
 interface ChatWindowProps {
@@ -24,7 +27,13 @@ export default function ChatWindow({ messages }: ChatWindowProps) {
               : "bg-gray-700 text-gray-200 self-end"
           }`}
         >
-          {msg.text}
+          <p>{msg.text}</p>
+          {msg.file && (
+            <div className="mt-2 flex items-center bg-gray-600 p-2 rounded-md">
+              <Paperclip size={16} className="mr-2" />
+              <span className="text-sm">{msg.file.name}</span>
+            </div>
+          )}
         </div>
       ))}
     </div>

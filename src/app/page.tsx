@@ -12,27 +12,69 @@ interface Message {
   id: number;
   sender: Sender;
   text: string;
+  file?: File;
 }
 
 export default function HomePage() {
   const [messages, setMessages] = useState<Message[]>([
-    { 
-      id: 1, 
-      sender: "agent", 
-      text: "Welcome to the Hierarchical Agent Team! The CEO is ready to delegate tasks to our specialized team members." 
+    {
+      id: 1,
+      sender: "agent",
+      text: "Welcome to the Hierarchical Agent Team! The CEO is ready to delegate tasks to our specialized team members."
     },
   ]);
   const [activeTab, setActiveTab] = useState("home");
 
-  const addMessage = (text: string, sender: Sender = "human") => {
-    setMessages((prev) => [
-      ...prev,
-      { 
-        id: prev.length + 1, 
-        sender, 
-        text 
-      },
-    ]);
+  const addMessage = async (text: string, sender: Sender = "human", file?: File) => {
+    let fileUrl = '';
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          fileUrl = result.filepath;
+        } else {
+          console.error('File upload failed');
+          // Handle file upload error in the UI
+          const newMessage: Message = {
+            id: messages.length + 1,
+            sender: 'agent',
+            text: 'Sorry, the file upload failed. Please try again.',
+          };
+          setMessages((prev) => [...prev, newMessage]);
+          return;
+        }
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        const newMessage: Message = {
+          id: messages.length + 1,
+          sender: 'agent',
+          text: 'Sorry, there was an error uploading the file. Please try again.',
+        };
+        setMessages((prev) => [...prev, newMessage]);
+        return;
+      }
+    }
+
+    const messageText = fileUrl ? `${text}\n\nFile: ${fileUrl}` : text;
+
+    const newMessage: Message = {
+      id: messages.length + 1,
+      sender,
+      text: messageText,
+    };
+    if (file) {
+      newMessage.file = file;
+    }
+    setMessages((prev) => [...prev, newMessage]);
+
 
     // If it's a human message, simulate a response about using the CEO delegation system
     if (sender === "human") {
@@ -64,7 +106,7 @@ export default function HomePage() {
         {activeTab === "home" ? (
           <div className="bg-gray-800 rounded-lg shadow-lg p-4 flex-1 flex flex-col">
             <ChatWindow messages={messages} />
-            <MessageInput onSend={addMessage} />
+            <MessageInput onSend={(text, file) => addMessage(text, "human", file)} />
           </div>
         ) : (
           <div className="bg-gray-800 rounded-lg shadow-lg p-4 flex-1 flex flex-col">
