@@ -1,8 +1,8 @@
 import { LLMConfig, LLMResponse } from "../models/LLMConfig";
 
-const applyPromptInjection = (prompt: string, injection: string): string => {
-  if (!injection) return prompt;
-  return `${injection}\n\n${prompt}`;
+const applyPromptInjection = (messages: { role: string; content: string }[], injection: string): { role: string; content:string }[] => {
+  if (!injection) return messages;
+  return [{ role: "system", content: injection }, ...messages];
 };
 
 const validateConfig = (config: LLMConfig) => {
@@ -14,14 +14,15 @@ const validateConfig = (config: LLMConfig) => {
   }
 };
 
-export async function queryLocalLLM(prompt: string, config: LLMConfig): Promise<LLMResponse> {
+export async function queryLocalLLM(messages: { role: string; content: string }[], config: LLMConfig): Promise<LLMResponse> {
   try {
-    const finalPrompt = applyPromptInjection(prompt, config.promptInjection);
+    const finalMessages = applyPromptInjection(messages, config.promptInjection);
+    const prompt = finalMessages.map(m => `${m.role}: ${m.content}`).join('\n');
     const response = await fetch(config.localEndpoint as string, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        prompt: finalPrompt,
+        prompt: prompt,
         temperature: config.temperature,
         max_tokens: config.maxTokens
       })
@@ -45,9 +46,9 @@ export async function queryLocalLLM(prompt: string, config: LLMConfig): Promise<
   }
 }
 
-export async function queryCommercialLLM(prompt: string, config: LLMConfig): Promise<LLMResponse> {
+export async function queryCommercialLLM(messages: { role: string; content: string }[], config: LLMConfig): Promise<LLMResponse> {
   try {
-    const finalPrompt = applyPromptInjection(prompt, config.promptInjection);
+    const finalMessages = applyPromptInjection(messages, config.promptInjection);
     const response = await fetch(config.commercialEndpoint as string, {
       method: "POST",
       headers: {
@@ -55,20 +56,22 @@ export async function queryCommercialLLM(prompt: string, config: LLMConfig): Pro
         "Authorization": `Bearer ${config.apiKey}`
       },
       body: JSON.stringify({
-        prompt: finalPrompt,
+        messages: finalMessages,
         temperature: config.temperature,
         max_tokens: config.maxTokens,
-        model: "text-davinci-003" // Default model, could be made configurable
+        model: config.model
       })
     });
 
     if (!response.ok) {
+      const errorBody = await response.text();
+      console.error("Commercial LLM request failed:", response.status, response.statusText, errorBody);
       throw new Error(`Commercial LLM request failed: ${response.statusText}`);
     }
 
     const data = await response.json();
     return {
-      text: data.choices?.[0]?.text || "",
+      text: data.choices?.[0]?.message?.content || "",
       usage: data.usage,
       metadata: {
         model: data.model,
@@ -83,11 +86,13 @@ export async function queryCommercialLLM(prompt: string, config: LLMConfig): Pro
 
 export async function queryLLM(prompt: string, config: LLMConfig): Promise<LLMResponse> {
   validateConfig(config);
-  
+
+  const messages = [{ role: "user", content: prompt }];
+
   if (config.mode === "local") {
-    return queryLocalLLM(prompt, config);
+    return queryLocalLLM(messages, config);
   } else if (config.mode === "commercial") {
-    return queryCommercialLLM(prompt, config);
+    return queryCommercialLLM(messages, config);
   } else {
     throw new Error(`Unsupported LLM mode: ${config.mode}`);
   }
@@ -97,7 +102,12 @@ export async function queryLLM(prompt: string, config: LLMConfig): Promise<LLMRe
 export async function checkLLMAvailability(config: LLMConfig): Promise<boolean> {
   try {
     const testPrompt = "Test connection.";
-    await queryLLM(testPrompt, config);
+    const messages = [{ role: "user", content: testPrompt }];
+    if (config.mode === 'local') {
+      await queryLocalLLM(messages, config);
+    } else {
+      await queryCommercialLLM(messages, config);
+    }
     return true;
   } catch (error) {
     console.error("LLM availability check failed:", error);
