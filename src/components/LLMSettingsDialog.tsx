@@ -152,6 +152,17 @@ export default function LLMSettingsDialog({
                   placeholder="Enter your API key"
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="model">Model</Label>
+                <Input
+                  id="model"
+                  value={config.model}
+                  onChange={(e) =>
+                    setConfig({ ...config, model: e.target.value })
+                  }
+                  placeholder="e.g. openai/gpt-4o"
+                />
+              </div>
             </>
           )}
 
