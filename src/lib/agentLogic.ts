@@ -126,6 +126,70 @@ export async function makeCollaborativeDecision(
   }
 }
 
+// Helper function to handle denied or no-consensus decisions
+async function handleDecisionFailure(
+  agentName: string,
+  task: AgentTask,
+  decision: AutonomousDecision | CollaborativeDecision
+): Promise<ProcessResult> {
+  const result = {
+    success: false,
+    message: `Task "${task.title}" was denied by the ${
+      'consensus_outcome' in decision ? 'collaborative' : 'autonomous'
+    } decision system. ${
+      'consensus_outcome' in decision
+        ? `Consensus: ${decision.consensus_outcome}, Oversight: ${decision.oversight_feedback}`
+        : `Risk Level: ${decision.risk_assessment.risk_level}, Impact Level: ${decision.impact_analysis.impact_level}`
+    }`,
+  };
+
+  await storeExperience(agentName, task, decision, "failure");
+  return result;
+}
+
+// Helper function to process a task with a tool
+async function processTaskWithTool(
+  agentName: string,
+  task: AgentTask,
+  decision: AutonomousDecision | CollaborativeDecision,
+  toolContext: ToolExecutionContext
+): Promise<ProcessResult> {
+  const result: ProcessResult = {
+    success: toolContext.result?.success ?? false,
+    message: `Task "${task.title}" processed with tool ${toolContext.tool.name}. ${toolContext.result?.message || ''}`,
+    toolResult: toolContext.result,
+    context: toolContext,
+  };
+
+  await storeExperience(agentName, task, decision, result.success ? "success" : "failure");
+  return result;
+}
+
+// Helper function to process a task without a tool
+async function processTaskWithoutTool(
+  agentName: string,
+  task: AgentTask,
+  decision: AutonomousDecision | CollaborativeDecision
+): Promise<ProcessResult> {
+  // Simulate a 10% chance of failing the task
+  if (Math.random() < 0.1) {
+    const result = {
+      success: false,
+      message: `Agent ${agentName} encountered an error while processing "${task.title}".`,
+    };
+    await storeExperience(agentName, task, decision, "failure");
+    return result;
+  } else {
+    const result = {
+      success: true,
+      message: `Agent ${agentName} has successfully completed "${task.title}".`,
+    };
+    await storeExperience(agentName, task, decision, "success");
+    return result;
+  }
+}
+
+
 export async function processAgentTask(
   agentName: string,
   task: AgentTask,
@@ -134,71 +198,37 @@ export async function processAgentTask(
 ): Promise<ProcessResult> {
   return new Promise((resolve) => {
     setTimeout(async () => {
-      // If there's a tool context, include it in the result
-      if (toolContext && toolContext.tool) {
-        const result: ProcessResult = {
-          success: toolContext.result?.success ?? false,
-          message: `Task "${task.title}" processed with tool ${toolContext.tool.name}. ${toolContext.result?.message || ''}`,
-          toolResult: toolContext.result,
-          context: toolContext
-        };
-        resolve(result);
-        return;
-      }
       try {
-        // If there's a decision and it's denied or has no consensus, return failure
         if (decision) {
-          // Store tool usage in experience if available
-          const experienceData = toolContext && toolContext.tool ? {
-            toolUsed: toolContext.tool.name,
-            toolResult: toolContext.result
-          } : undefined;
+          // Check for decision failure first
           if (
-            decision.decision_outcome === "denied" || 
+            decision.decision_outcome === "denied" ||
             ('consensus_outcome' in decision && decision.consensus_outcome === "no_agreement")
           ) {
-            const result = {
-              success: false,
-              message: `Task "${task.title}" was denied by the ${
-                'consensus_outcome' in decision ? 'collaborative' : 'autonomous'
-              } decision system. ${
-                'consensus_outcome' in decision 
-                  ? `Consensus: ${decision.consensus_outcome}, Oversight: ${decision.oversight_feedback}`
-                  : `Risk Level: ${decision.risk_assessment.risk_level}, Impact Level: ${decision.impact_analysis.impact_level}`
-              }`,
-            };
-            
-            // Store the experience
-            await storeExperience(agentName, task, decision, "failure");
-            
-            resolve(result);
+            resolve(await handleDecisionFailure(agentName, task, decision));
             return;
           }
-        }
 
-        // Simulate a 10% chance of failing the task
-        if (Math.random() < 0.1) {
-          const result = {
-            success: false,
-            message: `Agent ${agentName} encountered an error while processing "${task.title}".`,
-          };
-          
-          if (decision) {
-            await storeExperience(agentName, task, decision, "failure");
+          // Delegate to appropriate processor
+          if (toolContext && toolContext.tool) {
+            resolve(await processTaskWithTool(agentName, task, decision, toolContext));
+          } else {
+            resolve(await processTaskWithoutTool(agentName, task, decision));
           }
-          
-          resolve(result);
         } else {
-          const result = {
-            success: true,
-            message: `Agent ${agentName} has successfully completed "${task.title}".`,
-          };
-          
-          if (decision) {
-            await storeExperience(agentName, task, decision, "success");
+          // Fallback for tasks without a formal decision (legacy or simple tasks)
+          // This part retains old logic for simple, non-decision-based tasks
+          if (Math.random() < 0.1) {
+             resolve({
+              success: false,
+              message: `Agent ${agentName} encountered an error while processing "${task.title}".`,
+            });
+          } else {
+            resolve({
+              success: true,
+              message: `Agent ${agentName} has successfully completed "${task.title}".`,
+            });
           }
-          
-          resolve(result);
         }
       } catch (error: unknown) {
         console.error("Error processing task:", error);
