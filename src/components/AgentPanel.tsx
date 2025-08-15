@@ -329,7 +329,11 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
       </div>
       
       {/* CEO Card with LLM Settings */}
-      <div className="bg-gray-700 p-4 rounded-md flex items-center space-x-3 mb-4 border-2 border-yellow-400 relative overflow-hidden">
+      <div
+        className="bg-gray-700 p-4 rounded-md flex items-center space-x-3 mb-4 border-2 border-yellow-400 relative overflow-hidden"
+        style={{ cursor: 'pointer' }}
+        onClick={(e) => handleOpenLLMSettings(e, "CEO")}
+      >
         <div className="absolute inset-0 bg-yellow-400/5"></div>
         <div className="relative">
           <img
