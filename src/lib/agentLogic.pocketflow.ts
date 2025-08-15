@@ -139,12 +139,25 @@ export function createAgentTaskFlow(): Flow<AgentFlowState> {
     return flow;
 }
 
+import fs from 'fs/promises';
+
 export async function processAgentTaskWithPocketFlow(
     agentName: string,
     task: AgentTask,
     decisionData?: DecisionData,
     toolContext?: ToolExecutionContext
 ): Promise<ProcessResult> {
+    if (task.description.includes("File: ")) {
+        const filePath = task.description.split("File: ")[1];
+        try {
+            const fileContent = await fs.readFile(filePath, 'utf-8');
+            task.description += `\n\n--- File Content ---\n${fileContent}`;
+        } catch (error) {
+            console.error("Error reading file:", error);
+            task.description += `\n\n--- Error reading file: ${filePath} ---`;
+        }
+    }
+
     const flow = createAgentTaskFlow();
     const sharedState: AgentFlowState = {
         agentName,
