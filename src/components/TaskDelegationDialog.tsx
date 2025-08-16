@@ -164,15 +164,17 @@ export default function TaskDelegationDialog({
               <Label htmlFor="tool">Tool (Optional)</Label>
               <Select
                 value={formData.toolName}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, toolName: value }))
-                }
+                onValueChange={(value) => {
+                  // Convert "none" to empty string
+                  const newValue = value === "none" ? "" : value;
+                  setFormData(prev => ({ ...prev, toolName: newValue }));
+                }}
               >
                 <SelectTrigger className="bg-gray-700">
                   <SelectValue placeholder="Select a tool" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-700">
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {tools.map((tool) => (
                     <SelectItem key={tool.name} value={tool.name}>
                       {tool.name}
