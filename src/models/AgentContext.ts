@@ -37,6 +37,7 @@ export interface AgentToolContext {
 
 export interface ToolExecutionContext {
   tool: Tool;
+  input: any; // Adding input property
   parameters: any;
   result?: ToolExecutionResult;
   error?: Error;

@@ -35,8 +35,8 @@ export async function POST(request: Request) {
       filename: (name, ext, part, form) => {
         return `${Date.now()}-${part.originalFilename}`;
       },
-      filter: ({ mimetype }) => {
-        return mimetype && aLLowedFileTypes.includes(mimetype);
+      filter: ({ mimetype }): boolean => {
+        return !!mimetype && aLLowedFileTypes.includes(mimetype);
       },
     });
 

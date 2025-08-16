@@ -3,11 +3,9 @@ import {
   processAgentTaskWithPocketFlow as processAgentTask,
   makeAutonomousDecision,
   makeCollaborativeDecision,
-  AutonomousDecision,
-  CollaborativeDecision,
-  AgentTask,
-  DecisionData
 } from "@/lib/agentLogic.pocketflow";
+import { AutonomousDecision, CollaborativeDecision } from "@/lib/agentTypes";
+import { AgentTask, DecisionData } from "@/lib/agentLogic";
 import { queryLLM } from '@/lib/llmClient';
 import { LLMConfig } from '@/models/LLMConfig';
 
