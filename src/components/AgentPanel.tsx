@@ -7,6 +7,7 @@ import DecisionAnalysisDialog from "./DecisionAnalysisDialog";
 import WebSearchDialog from "./WebSearchDialog";
 import LearningPanel from "./LearningPanel";
 import LLMSettingsDialog from "./LLMSettingsDialog";
+import EditAgentDialog from "./EditAgentDialog";
 import { LLMConfig, defaultLLMConfig } from "../models/LLMConfig";
 
 // Define types locally as they are no longer imported from server-side code
@@ -35,7 +36,7 @@ export interface CollaborativeDecision extends AutonomousDecision {
   oversight_duration: "quick" | "detailed";
 }
 
-interface Agent {
+export interface Agent {
   name: string;
   status: string;
   currentTask?: string;
@@ -86,6 +87,8 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
   const [showToolsPanel, setShowToolsPanel] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState<AutonomousDecision | CollaborativeDecision | null>(null);
   const [selectedAgentForLearning, setSelectedAgentForLearning] = useState<string | undefined>();
+  const [showEditAgentDialog, setShowEditAgentDialog] = useState(false);
+  const [selectedAgentForEdit, setSelectedAgentForEdit] = useState<Agent | null>(null);
 
   // Fetch tools on component mount
   useEffect(() => {
@@ -265,6 +268,17 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
     }
   };
 
+  const handleSaveEditedAgent = (agent: Agent) => {
+    if (agent.name === "CEO") {
+      setCeoAgent(agent);
+    } else {
+      setSubAgents(prev => 
+        prev.map(a => a.name === agent.name ? agent : a)
+      );
+    }
+    setShowEditAgentDialog(false);
+  };
+
   return (
     <aside className="w-80 bg-gray-800 p-4 flex flex-col space-y-4">
       <div className="flex justify-between items-center mb-4">
@@ -298,7 +312,10 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
       <div
         className="bg-gray-700 p-4 rounded-md flex items-center space-x-3 mb-4 border-2 border-yellow-400 relative overflow-hidden"
         style={{ cursor: 'pointer' }}
-        onClick={(e) => handleOpenLLMSettings(e, "CEO")}
+        onClick={() => {
+          setSelectedAgentForEdit(ceoAgent);
+          setShowEditAgentDialog(true);
+        }}
       >
         <div className="absolute inset-0 bg-yellow-400/5"></div>
         <div className="relative">
@@ -351,11 +368,10 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
             className={`bg-gray-700 p-3 rounded-md flex items-center space-x-3 transition-colors duration-200 ${
               agent.status === "Error" ? "border-red-500 border" : ""
             }`}
-            onClick={() => {
-              if (agent.lastDecision) {
-                handleViewDecision(agent);
-              }
-            }}
+        onClick={() => {
+          setSelectedAgentForEdit(agent);
+          setShowEditAgentDialog(true);
+        }}
             style={{ cursor: agent.lastDecision ? 'pointer' : 'default' }}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -457,6 +473,13 @@ export default function AgentPanel({ onAgentMessage }: AgentPanelProps) {
         }
         onSave={handleSaveLLMSettings}
         onClose={handleCloseLLMSettings}
+      />
+
+      <EditAgentDialog
+        open={showEditAgentDialog}
+        onOpenChange={setShowEditAgentDialog}
+        agent={selectedAgentForEdit!}
+        onSave={handleSaveEditedAgent}
       />
 
       {/* Tools Panel Dialog */}
