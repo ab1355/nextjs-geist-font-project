@@ -11,8 +11,12 @@ interface EditAgentDialogProps {
 
 export default function EditAgentDialog({ open, onOpenChange, agent, onSave }: EditAgentDialogProps) {
   const [editedAgent, setEditedAgent] = useState<Agent>({
-    ...agent,
-    llmConfig: agent.llmConfig || defaultLLMConfig
+    ...(agent || {
+      name: "",
+      status: "Idle",
+      avatar: "",
+      llmConfig: defaultLLMConfig
+    })
   });
 
   const handleSave = () => {
