@@ -4,6 +4,9 @@ import { Tool, executeTool, ToolExecutionResult } from "./agentTools";
 import type { AgentContext, ToolExecutionContext } from "../models/AgentContext";
 import { storeExperience } from "./learningEngine";
 import { makeAutonomousDecision, makeCollaborativeDecision } from './agentLogic';
+// Exporting the functions to avoid duplicate identifiers
+export { makeAutonomousDecision, makeCollaborativeDecision };
+export { makeAutonomousDecision, makeCollaborativeDecision };
 
 // Shared store for the agent logic flow
 interface AgentFlowState {
